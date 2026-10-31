@@ -8,3 +8,19 @@
 # Secrets
 .env
 .env.*
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# Rapports générés
+rapport-conception.*
+*.report.html
+*.report.md
