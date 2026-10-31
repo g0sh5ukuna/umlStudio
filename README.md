@@ -7,6 +7,7 @@
 Un outil en ligne de commande qui contrôle un dossier de conception logicielle écrit en YAML,
 trace chaque exigence jusqu'à son test et produit les documents à remettre à l'équipe.
 
+[![CI](https://github.com/g0sh5ukuna/umlStudio/actions/workflows/ci.yml/badge.svg)](https://github.com/g0sh5ukuna/umlStudio/actions/workflows/ci.yml)
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-1f2937)](LICENSE)
 [![Python ≥ 3.10](https://img.shields.io/badge/python-%E2%89%A5%203.10-1f2937)](https://www.python.org/)
 [![Statut alpha](https://img.shields.io/badge/statut-alpha%200.1.0-b45309)](#feuille-de-route)
