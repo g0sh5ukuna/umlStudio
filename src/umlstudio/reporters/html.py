@@ -75,6 +75,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         /* KPI Grid */
+        .lexique-intro { color: var(--text-secondary, #475569); margin-bottom: 16px; line-height: 1.6; }
+        .lexique { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 10px 20px; font-size: 0.92rem; }
+        .lexique dt { font-weight: 700; color: #0f172a; }
+        .lexique dd { margin: 0; color: #475569; line-height: 1.5; }
+        @media (max-width: 640px) { .lexique { grid-template-columns: 1fr; } .lexique dd { margin-bottom: 8px; } }
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
         .kpi-card {
             background: var(--white);
@@ -206,6 +211,40 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
         </div>
 
+        <!-- Mode d'emploi -->
+        <section class="section-card">
+            <h2 class="section-title">Comment lire ce rapport</h2>
+            <p class="lexique-intro">
+                Ce rapport répond à une question : <strong>le dossier de conception est-il prêt à être validé, et sinon, que manque-t-il ?</strong>
+                Il s'adresse à celui qui valide (commanditaire, responsable technique) avant qu'on code ou qu'on livre.
+                Il juge la cohérence du dossier, pas la qualité du logiciel : un dossier à 100&nbsp;% peut décrire un mauvais produit.
+            </p>
+            <dl class="lexique">
+                <dt>Score de maturité</dt>
+                <dd>Part des 12 contrôles réussis. Il ne pondère pas la gravité : lisez d'abord la liste des points à corriger.</dd>
+                <dt>Couverture des exigences</dt>
+                <dd>Part des exigences qui ont au moins un test d'acceptation renseigné. Une exigence non testée est une promesse invérifiable.</dd>
+                <dt>Couverture des cas d'usage</dt>
+                <dd>Part des cas d'utilisation pris en charge par au moins un composant. Un cas sans composant n'a personne pour le construire.</dd>
+                <dt>Risques & conformité</dt>
+                <dd>Nombre de risques suivis / nombre de fiches de données personnelles déclarées. « 7 / 3 » : 7 risques, 3 fiches.</dd>
+                <dt>PASS, WARN, FAIL, INFO</dt>
+                <dd>Contrôle réussi ; avertissement (bloquant seulement en mode strict) ; anomalie bloquante ; contrôle sans objet pour l'instant.</dd>
+                <dt>Identifiants</dt>
+                <dd>OBJ objectif, EX exigence, UC cas d'utilisation, CMP composant, TST test, RSK risque, DP donnée personnelle, DEC décision d'architecture.</dd>
+                <dt>Matrice de traçabilité</dt>
+                <dd>Chaque ligne suit un fil : objectif → exigence → cas d'utilisation → composant → test. « Aucun » marque le maillon manquant.</dd>
+                <dt>Décision d'architecture</dt>
+                <dd>Un choix technique, sa raison, son risque et l'alternative écartée. Elle évite de rejouer le même débat six mois plus tard.</dd>
+                <dt>Mitigation</dt>
+                <dd>Ce qu'on fait pour réduire la probabilité ou l'impact d'un risque. Un risque sans mitigation est seulement constaté.</dd>
+                <dt>Base légale, durée de conservation</dt>
+                <dd>Ce qui autorise à traiter une donnée personnelle (consentement, contrat…) et le moment où elle doit être effacée (RGPD, loi béninoise APDP).</dd>
+                <dt>Empreinte SHA-256</dt>
+                <dd>Code calculé sur un fichier validé. Si le fichier change d'un caractère, le code change : la validation n'est plus valable. Elle ne prouve pas qui a validé.</dd>
+            </dl>
+        </section>
+
         <!-- Section 1: Contrôle des 10 Règles -->
         <section class="section-card">
             <h2 class="section-title">
@@ -307,7 +346,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <h2 class="section-title">Architecture Logicielle & Décisions Structurantes (ADR)</h2>
             {% if architecture and architecture.decisions %}
             <div style="margin-bottom: 24px;">
-                <h3 style="margin-bottom: 12px;">Architecture Decision Records (ADR)</h3>
+                <h3 style="margin-bottom: 12px;">Décisions d'architecture</h3>
                 <table>
                     <thead>
                         <tr>

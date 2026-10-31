@@ -63,3 +63,13 @@ def test_rapports_html_echappent_le_contenu_du_dossier(tmp_path: Path):
     spec = generate_spec_html(dossier, tmp_path / "spec.html")
     assert charge not in spec
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in spec
+
+
+def test_le_rapport_explique_ses_termes(tmp_path: Path):
+    dossier = ConceptionDossier(root_path=tmp_path)
+    html_path = tmp_path / "rapport.html"
+    generate_html_report(dossier, evaluate_all_rules(dossier), html_path)
+    rapport = html_path.read_text(encoding="utf-8")
+    assert "Comment lire ce rapport" in rapport
+    for terme in ("Score de maturité", "Matrice de traçabilité", "Mitigation", "Empreinte SHA-256"):
+        assert terme in rapport
