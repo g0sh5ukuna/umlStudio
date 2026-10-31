@@ -1,0 +1,58 @@
+document:
+  type: exigences
+  statut: brouillon
+  version: 0.1.0
+acteurs:
+- id: ACT-01
+  nom: Agent
+  type: humain
+- id: ACT-02
+  nom: Service fiscal
+  type: systeme
+exigences:
+- id: EX-01
+  type: fonctionnelle
+  enonce: Le système enregistre la demande
+  mesure: réponse < 500 ms au 95e centile
+  priorite: must
+  objectifs:
+  - OBJ-01
+  source: humain
+  statut: actif
+cas_utilisation:
+- id: UC-01
+  nom: Soumettre une demande
+  acteur_principal: ACT-01
+  acteurs_secondaires:
+  - ACT-02
+  exigences: &id001
+  - EX-01
+  preconditions: &id002 []
+  scenario_nominal:
+  - 1. L'agent remplit le formulaire
+  - 2. Le système contrôle les pièces
+  - 3. Le service fiscal confirme le numéro
+  scenarios_alternatifs: &id003 []
+  postconditions:
+  - Demande enregistrée et confirmée
+  endpoints:
+  - creerDemande
+  - confirmerDemande
+  - envoyerRecu
+  source: humain
+  statut: actif
+- id: UC-02
+  nom: Consulter une demande
+  acteur_principal: ACT-01
+  acteurs_secondaires: []
+  exigences: *id001
+  preconditions: *id002
+  scenario_nominal:
+  - 1. L'agent ouvre la demande
+  - 2. Le système affiche le détail
+  scenarios_alternatifs: *id003
+  postconditions: []
+  endpoints:
+  - lireDemande
+  source: humain
+  statut: actif

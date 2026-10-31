@@ -642,6 +642,18 @@ def check_rule_12_integrite_referentielle(dossier: ConceptionDossier) -> RuleRes
             for lot_id in jal.lots:
                 check_ref(lot_id, "04-plan.yaml", jal.id, "lot du jalon")
 
+    # Schéma : clés étrangères -> Entités
+    if dossier.architecture:
+        for ent in dossier.architecture.entites:
+            for attr in ent.attributs:
+                if attr.reference:
+                    check_ref(attr.reference, "03-architecture.yaml", ent.id, f"clé étrangère {attr.nom}")
+
+    # Contrat d'API : effets en base -> Entités
+    for op in dossier.operations:
+        for effet in op.effets:
+            check_ref(effet.entite, "api/openapi.yaml", op.operation_id, f"effet en base ({effet.action})")
+
     # Risques DP -> Entités
     if dossier.risques:
         for dp in dossier.risques.donnees_personnelles:

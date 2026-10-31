@@ -1,0 +1,138 @@
+document:
+  type: architecture
+  statut: brouillon
+  version: 0.1.0
+decisions:
+- id: DEC-01
+  sujet: ''
+  choix: ''
+  pourquoi: ''
+  risque_principal: ''
+  alternative_ecartee: ''
+  statut: proposee
+composants:
+- id: CMP-01
+  nom: Interface web
+  couche: presentation
+  cas_utilisation:
+  - UC-01
+  - UC-02
+  depend_de:
+  - CMP-02
+- id: CMP-02
+  nom: API demandes
+  couche: application
+  cas_utilisation:
+  - UC-01
+  - UC-02
+  depend_de:
+  - CMP-03
+- id: CMP-03
+  nom: Base de données
+  couche: donnees
+  cas_utilisation: []
+  depend_de: []
+entites:
+- id: ENT-01
+  nom: Demande
+  table: demande
+  attributs:
+  - nom: id
+    type: entier
+    cle: primaire
+  - nom: telephone
+    type: texte
+    unique: true
+    donnee_personnelle: true
+  - nom: agent_id
+    type: entier
+    cle: etrangere
+    reference: ENT-02
+    sur_suppression: protect
+  - nom: commentaire
+    type: texte
+    obligatoire: false
+  contraintes:
+  - type: unique
+    champs:
+    - agent_id
+    - telephone
+    nom: une_demande_par_agent
+  relations:
+  - vers: ENT-03
+    cardinalite: 0..*
+- id: ENT-02
+  nom: Agent
+  table: agent
+  attributs:
+  - nom: id
+    type: entier
+    cle: primaire
+  - nom: nom
+    type: texte
+  relations: []
+- id: ENT-03
+  nom: PieceJointe
+  table: piece_jointe
+  attributs:
+  - nom: id
+    type: entier
+    cle: primaire
+  - nom: demande_id
+    type: entier
+    cle: etrangere
+    reference: ENT-01
+    sur_suppression: cascade
+  - nom: fichier
+    type: fichier
+  relations: []
+interfaces_externes:
+- id: IFX-01
+  systeme: ''
+  sens: entrant
+  protocole: ''
+  donnees_echangees: ''
+  proprietaire: ''
+deploiement:
+  environnements:
+  - dev
+  - recette
+  - prod
+  noeuds:
+  - id: NOD-01
+    nom: ''
+    type: conteneur
+    heberge:
+    - CMP-01
+    reseau: intranet
+securite:
+  authentification: ''
+  autorisation: ''
+  chiffrement_transit: ''
+  chiffrement_repos: ''
+  journalisation: ''
+diagrammes:
+- fichier: diagrammes/composants.puml
+  type: composants
+- fichier: diagrammes/sequence-UC-01.puml
+  type: sequence
+  cas_utilisation: UC-01
+migrations:
+- id: MIG-01
+  nom: Tables initiales
+  lot: LOT-01
+  operations:
+  - Créer la table agent
+  - Créer la table demande
+  - Créer la table piece_jointe
+  reversible: true
+  reprise_donnees: aucune
+  statut: appliquee
+- id: MIG-02
+  nom: Unicité demande par agent
+  lot: LOT-01
+  operations:
+  - Ajouter la contrainte une_demande_par_agent
+  reversible: true
+  reprise_donnees: Dédoublonner les demandes existantes avant application
+  statut: prevue

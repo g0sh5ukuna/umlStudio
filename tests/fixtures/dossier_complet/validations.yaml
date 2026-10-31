@@ -1,0 +1,13 @@
+# Registre des validations. Une ligne par validation, jamais modifiée après coup.
+# hash : sha256sum <fichier>  — si le fichier change, la validation n'est plus valable.
+validations:
+  - document: 00-cadrage.yaml
+    version: 0.1.0
+    sha256: ""
+    commit: ""               # sha du commit validé
+    validateur:
+      nom: ""
+      role: ""
+    date: ""                 # AAAA-MM-JJ
+    preuve: ""               # lien de la demande de fusion approuvée
+    reserves: []             # conditions posées par le validateur

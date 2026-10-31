@@ -9,9 +9,64 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 from jinja2 import Environment
+from markupsafe import Markup
 
 from ..models.dossier import ConceptionDossier
 from ..core.graph import DependencyGraph
+from .diagrams import (
+    api_flow_mermaid,
+    api_flow_svg,
+    architecture_mermaid,
+    architecture_svg,
+    swimlane_mermaid,
+    swimlane_svg,
+)
+from .database import erd_mermaid, erd_svg, operation_db_effects, table_name
+
+
+def _operations_view(dossier: ConceptionDossier) -> List[dict]:
+    """Une ligne par opération du contrat d'API, prête pour la fiche des opérations."""
+    entites = {e.id: e.nom for e in (dossier.architecture.entites if dossier.architecture else []) if e.nom}
+    ucs = dossier.exigences.cas_utilisation if dossier.exigences else []
+    rows = []
+    for op in dossier.operations:
+        effets = operation_db_effects(op, dossier)
+        if effets:
+            stockage = " ; ".join(title + (f" [{' ; '.join(details)}]" if details else "") for title, details in effets)
+        elif op.stocke is None:
+            stockage = "Non déclaré"
+        elif not op.stocke:
+            stockage = "Rien"
+        else:
+            stockage = ", ".join(entites.get(e, e) for e in op.stocke)
+        rows.append({
+            "op": op,
+            "securite": " ou ".join(op.securite) or "Non déclarée",
+            "requis": [c for c in op.champs if c.requis],
+            "facultatifs": [c for c in op.champs if not c.requis],
+            "succes": "; ".join(f"{r.code} {r.description}".strip() for r in op.succes) or "-",
+            "erreurs": "; ".join(f"{r.code} {r.description}".strip() for r in op.erreurs) or "-",
+            "stockage": stockage,
+            "effets": effets,
+            "ucs": [uc.id for uc in ucs if op.operation_id in uc.endpoints],
+        })
+    return rows
+
+
+def _key_label(attr, entites) -> str:
+    parts = []
+    if attr.cle == "primaire":
+        parts.append("Clé primaire")
+    if attr.reference:
+        cible = entites.get(attr.reference)
+        parts.append(f"→ {table_name(cible) if cible else attr.reference}" + (f" (suppression : {attr.sur_suppression})" if attr.sur_suppression else ""))
+    if attr.unique:
+        parts.append("Unique")
+    return ", ".join(parts)
+
+
+def _champ_label(c) -> str:
+    return c.nom if c.emplacement == "corps" else f"{c.nom} ({c.emplacement})"
 
 
 def generate_spec_markdown(dossier: ConceptionDossier, output_path: Path) -> str:
@@ -165,6 +220,7 @@ def generate_spec_markdown(dossier: ConceptionDossier, output_path: Path) -> str
         "",
         "## 5. Spécifications Détaillées des Cas d'Utilisation",
     ])
+    acteurs = {a.id: a for a in dossier.exigences.acteurs} if dossier.exigences else {}
     if dossier.exigences and dossier.exigences.cas_utilisation:
         for uc in dossier.exigences.cas_utilisation:
             lines.extend([
@@ -187,6 +243,10 @@ def generate_spec_markdown(dossier: ConceptionDossier, output_path: Path) -> str
             for step in uc.scenario_nominal:
                 lines.append(f"- {step}")
 
+            couloirs = swimlane_mermaid(uc, acteurs)
+            if couloirs:
+                lines.extend(["", "```mermaid", couloirs, "```"])
+
             if uc.scenarios_alternatifs:
                 lines.extend([
                     "",
@@ -206,6 +266,50 @@ def generate_spec_markdown(dossier: ConceptionDossier, output_path: Path) -> str
         "",
         "## 6. Architecture Technique & Composants",
     ])
+    vue = architecture_mermaid(dossier)
+    if vue:
+        lines.extend([
+            "",
+            "### Vue de bout en bout",
+            "",
+            "Qui utilise quoi : les acteurs entrent par les composants de présentation, "
+            "qui s'appuient sur l'application, puis sur les données et les systèmes externes.",
+            "",
+            "```mermaid",
+            vue,
+            "```",
+        ])
+
+    flux = [(uc, api_flow_mermaid(uc, dossier)) for uc in (dossier.exigences.cas_utilisation if dossier.exigences else [])]
+    flux = [(uc, code) for uc, code in flux if code]
+    if flux:
+        lines.extend([
+            "",
+            "### Flux des opérations",
+            "",
+            "Pour chaque cas d'utilisation, les appels d'API dans l'ordre : ce qui est envoyé, "
+            "la sécurité exigée, ce qui est stocké, ce qui se passe en cas d'échec, puis l'appel suivant.",
+        ])
+        for uc, code in flux:
+            lines.extend(["", f"#### {uc.id} — {uc.nom}", "", "```mermaid", code, "```"])
+
+    operations = _operations_view(dossier)
+    if operations:
+        lines.extend([
+            "",
+            "### Fiche des opérations",
+            "",
+            "| Opération | Appel | Sécurité | Entrées requises | Facultatives | Si succès | Si échec | Effets en base | Cas d'utilisation |",
+            "|---|---|---|---|---|---|---|---|---|",
+        ])
+        for row in operations:
+            op = row["op"]
+            lines.append(
+                f"| `{op.operation_id}` | `{op.methode} {op.chemin}` | {row['securite']} "
+                f"| {', '.join(_champ_label(c) for c in row['requis']) or '-'} "
+                f"| {', '.join(_champ_label(c) for c in row['facultatifs']) or '-'} "
+                f"| {row['succes']} | {row['erreurs']} | {row['stockage']} | {', '.join(row['ucs']) or '*aucun*'} |"
+            )
     if dossier.architecture and dossier.architecture.decisions:
         lines.extend([
             "",
@@ -242,19 +346,34 @@ def generate_spec_markdown(dossier: ConceptionDossier, output_path: Path) -> str
         "",
         "> **Pour le développeur :** Ce modèle définit les schémas de base de données, les entités ORM et les règles de validation de champs.",
     ])
+    schema = erd_mermaid(dossier)
+    if schema:
+        lines.extend([
+            "",
+            "### Schéma de la base de données",
+            "",
+            "PK clé primaire, FK clé étrangère, UK valeur unique, NN obligatoire (NOT NULL).",
+            "",
+            "```mermaid",
+            schema,
+            "```",
+        ])
     if dossier.architecture and dossier.architecture.entites:
+        entites = {e.id: e for e in dossier.architecture.entites}
         for ent in dossier.architecture.entites:
             lines.extend([
                 "",
-                f"### Classe / Entité : `{ent.id}` — {ent.nom}",
+                f"### Classe / Entité : `{ent.id}` — {ent.nom} (table `{table_name(ent)}`)",
                 "",
-                "| Attribut / Champ | Type | Obligatoire (Requis) | Donnée Personnelle (RGPD) |",
-                "|---|---|:---:|:---:|",
+                "| Attribut / Champ | Type | Obligatoire (Requis) | Clé / Contrainte | Donnée Personnelle (RGPD) |",
+                "|---|---|:---:|---|:---:|",
             ])
             for attr in ent.attributs:
                 req_badge = "🔴 **OUI**" if attr.obligatoire else "⚪ Non (optionnel)"
                 dp_badge = "🛡️ **OUI (RGPD)**" if attr.donnee_personnelle else "Non"
-                lines.append(f"| `{attr.nom}` | `{attr.type or 'String'}` | {req_badge} | {dp_badge} |")
+                lines.append(f"| `{attr.nom}` | `{attr.type or 'String'}` | {req_badge} | {_key_label(attr, entites) or '-'} | {dp_badge} |")
+            for c in ent.contraintes:
+                lines.append(f"\n- Contrainte {c.type.upper()} `{c.nom or '-'}` : {', '.join(c.champs) or c.condition}")
 
             if ent.relations:
                 lines.extend([
@@ -265,6 +384,21 @@ def generate_spec_markdown(dossier: ConceptionDossier, output_path: Path) -> str
                     lines.append(f"- Relation vers `{rel.vers}` (Cardinalité : `{rel.cardinalite}`)")
     else:
         lines.append("\nAucune entité déclarée.\n")
+
+    migrations = dossier.architecture.migrations if dossier.architecture else []
+    if migrations:
+        lines.extend([
+            "",
+            "### Migrations",
+            "",
+            "| ID | Migration | Lot | Ce qui change en base | Réversible | Reprise de données | Statut |",
+            "|---|---|---|---|:---:|---|---|",
+        ])
+        for m in migrations:
+            lines.append(
+                f"| `{m.id}` | {m.nom} | {m.lot or '-'} | {'<br>'.join(m.operations) or '-'} "
+                f"| {'Oui' if m.reversible else '**Non**'} | {m.reprise_donnees or '-'} | {m.statut} |"
+            )
 
     # 8. Sécurité & RGPD
     lines.extend([
@@ -570,6 +704,18 @@ SPEC_HTML_TEMPLATE = """<!DOCTYPE html>
         }
         .gherkin-keyword { color: #f472b6; font-weight: 600; }
 
+        .diagramme {
+            margin: 16px 0 4px;
+            padding: 12px;
+            border: 1px solid var(--slate-200);
+            border-radius: 10px;
+            background: var(--white);
+            overflow-x: auto;
+        }
+        .diagramme svg { display: block; margin: 0 auto; min-width: 320px; }
+        .table-scroll { overflow-x: auto; }
+        .diagramme figcaption { margin-top: 8px; font-size: 0.82rem; color: var(--slate-600); text-align: center; }
+
         @media (max-width: 900px) {
             .layout { flex-direction: column; }
             .sidebar { width: 100%; height: auto; position: static; }
@@ -744,6 +890,12 @@ SPEC_HTML_TEMPLATE = """<!DOCTYPE html>
                             <li>{{ step }}</li>
                             {% endfor %}
                         </ol>
+                        {% if swimlanes.get(uc.id) %}
+                        <figure class="diagramme">
+                            {{ swimlanes[uc.id] }}
+                            <figcaption>Une colonne par acteur ; les étapes se lisent de haut en bas, une flèche qui change de colonne est un passage de relais.</figcaption>
+                        </figure>
+                        {% endif %}
                         {% if uc.scenarios_alternatifs %}
                         <div style="margin-top: 12px;">
                             <strong>Scénarios Alternatifs & Exceptions :</strong>
@@ -763,6 +915,50 @@ SPEC_HTML_TEMPLATE = """<!DOCTYPE html>
             <!-- 6. Architecture -->
             <section id="architecture" class="doc-section">
                 <h2>6. Architecture & Cartographie des Composants</h2>
+                {% if architecture_view %}
+                <h3>Vue de bout en bout</h3>
+                <figure class="diagramme">
+                    {{ architecture_view }}
+                    <figcaption>Les acteurs entrent par la présentation, qui s'appuie sur l'application, puis sur les données et les systèmes externes. Une flèche est un cas d'utilisation ou une dépendance déclarée.</figcaption>
+                </figure>
+                {% endif %}
+
+                {% if flows %}
+                <h3>Flux des opérations</h3>
+                <p class="callout">Pour chaque cas d'utilisation, les appels d'API dans l'ordre : ce qui est envoyé, la sécurité exigée, ce qui est stocké, ce qui se passe en cas d'échec (en rouge), puis l'appel suivant. Une case orange signale une information manquante dans le contrat d'API.</p>
+                {% for uc_id, uc_nom, svg in flows %}
+                <figure class="diagramme">
+                    {{ svg }}
+                    <figcaption>{{ uc_id }} — {{ uc_nom }}</figcaption>
+                </figure>
+                {% endfor %}
+                {% endif %}
+
+                {% if operations %}
+                <h3>Fiche des opérations</h3>
+                <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr><th>Opération</th><th>Appel</th><th>Sécurité</th><th>Entrées</th><th>Si succès</th><th>Si échec</th><th>Effets en base</th><th>Cas d'utilisation</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for row in operations %}
+                        <tr>
+                            <td><span class="code-tag">{{ row.op.operation_id }}</span></td>
+                            <td><span class="badge badge-opt">{{ row.op.methode }}</span> <code>{{ row.op.chemin }}</code></td>
+                            <td>{{ row.securite }}</td>
+                            <td>{% for c in row.requis %}<strong>{{ c.nom }}</strong>{% if c.emplacement != 'corps' %} <small>({{ c.emplacement }})</small>{% endif %}{% if c.type %} <small>{{ c.type }}</small>{% endif %}<br>{% endfor %}{% for c in row.facultatifs %}{{ c.nom }}{% if c.type %} <small>{{ c.type }}</small>{% endif %} <small>(facultatif)</small><br>{% endfor %}{% if not row.requis and not row.facultatifs %}-{% endif %}</td>
+                            <td>{{ row.succes }}</td>
+                            <td>{{ row.erreurs }}</td>
+                            <td>{% if row.effets %}{% for title, details in row.effets %}<strong>{{ title }}</strong>{% for d in details %}<br><small>{{ d }}</small>{% endfor %}<br>{% endfor %}{% else %}{{ row.stockage }}{% endif %}</td>
+                            <td>{{ row.ucs | join(', ') or 'aucun' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--slate-600);">En gras : champs requis. « Non déclaré » en stockage : le contrat ne dit pas si l'appel enregistre quelque chose (extension <code>x-stocke</code>).</p>
+                {% endif %}
                 {% if architecture and architecture.decisions %}
                 <h3>Décisions Structurantes (ADR)</h3>
                 <table>
@@ -807,13 +1003,20 @@ SPEC_HTML_TEMPLATE = """<!DOCTYPE html>
             <section id="data-models" class="doc-section">
                 <h2>7. Modèle de Données : Classes & Champs Requis</h2>
                 <p>Ce volet est la spécification directe pour la création des modèles ORM et de la base de données.</p>
+                {% if schema_bdd %}
+                <h3>Schéma de la base de données</h3>
+                <figure class="diagramme">
+                    {{ schema_bdd }}
+                    <figcaption>Une boîte par table. PK clé primaire, FK clé étrangère, UQ valeur unique, NN obligatoire (NOT NULL). Une flèche part de la clé étrangère vers la table visée ; en pointillé, une relation déclarée sans clé.</figcaption>
+                </figure>
+                {% endif %}
                 {% if architecture and architecture.entites %}
                     {% for ent in architecture.entites %}
                     <div style="margin-bottom: 24px;">
-                        <h3>Classe / Entité : <span class="code-tag">{{ ent.id }}</span> {{ ent.nom }}</h3>
+                        <h3>Classe / Entité : <span class="code-tag">{{ ent.id }}</span> {{ ent.nom }} <small>— table <code>{{ tables[ent.id] }}</code></small></h3>
                         <table>
                             <thead>
-                                <tr><th>Champ / Attribut</th><th>Type</th><th>Caractère Requis</th><th>Protection Données</th></tr>
+                                <tr><th>Champ / Attribut</th><th>Type</th><th>Caractère Requis</th><th>Clé / Contrainte</th><th>Protection Données</th></tr>
                             </thead>
                             <tbody>
                                 {% for attr in ent.attributs %}
@@ -821,11 +1024,15 @@ SPEC_HTML_TEMPLATE = """<!DOCTYPE html>
                                     <td><strong>{{ attr.nom }}</strong></td>
                                     <td><span class="code-tag">{{ attr.type or 'String' }}</span></td>
                                     <td>{% if attr.obligatoire %}<span class="badge badge-req">OBLIGATOIRE</span>{% else %}<span class="badge badge-opt">Optionnel</span>{% endif %}</td>
+                                    <td>{{ keys[ent.id ~ '.' ~ attr.nom] or '-' }}</td>
                                     <td>{% if attr.donnee_personnelle %}<span class="badge badge-dp">RGPD</span>{% else %}-{% endif %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                        {% for c in ent.contraintes %}
+                        <p style="font-size: 0.9rem; margin-top: 6px;">Contrainte <strong>{{ c.type | upper }}</strong> <code>{{ c.nom or '-' }}</code> : {{ c.champs | join(', ') or c.condition }}</p>
+                        {% endfor %}
                         {% if ent.relations %}
                         <div style="margin-top: 8px; font-size: 0.9rem;">
                             <strong>Relations :</strong>
@@ -838,6 +1045,29 @@ SPEC_HTML_TEMPLATE = """<!DOCTYPE html>
                     {% endfor %}
                 {% else %}
                     <p>Aucune entité déclarée.</p>
+                {% endif %}
+
+                {% if architecture and architecture.migrations %}
+                <h3>Migrations</h3>
+                <p class="callout">Ce qui change dans la base, dans l'ordre. Une migration non réversible ou avec reprise de données demande une sauvegarde juste avant son application.</p>
+                <div class="table-scroll">
+                <table>
+                    <thead><tr><th>ID</th><th>Migration</th><th>Lot</th><th>Ce qui change en base</th><th>Réversible</th><th>Reprise de données</th><th>Statut</th></tr></thead>
+                    <tbody>
+                        {% for m in architecture.migrations %}
+                        <tr>
+                            <td><span class="code-tag">{{ m.id }}</span></td>
+                            <td><strong>{{ m.nom }}</strong></td>
+                            <td>{{ m.lot or '-' }}</td>
+                            <td>{% for o in m.operations %}{{ o }}<br>{% endfor %}</td>
+                            <td>{% if m.reversible %}Oui{% else %}<span class="badge badge-req">NON</span>{% endif %}</td>
+                            <td>{{ m.reprise_donnees or '-' }}</td>
+                            <td><span class="badge badge-opt">{{ m.statut }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
                 {% endif %}
             </section>
 
@@ -948,6 +1178,7 @@ def generate_spec_html(dossier: ConceptionDossier, output_path: Path) -> str:
         except Exception:
             ordered_lots = dossier.plan.lots
 
+    acteurs = {a.id: a for a in dossier.exigences.acteurs} if dossier.exigences else {}
     tmpl = Environment(autoescape=True).from_string(SPEC_HTML_TEMPLATE)
     html_content = tmpl.render(
         project_name=p_nom,
@@ -963,6 +1194,24 @@ def generate_spec_html(dossier: ConceptionDossier, output_path: Path) -> str:
         risques=dossier.risques,
         tests=dossier.tests,
         ordered_lots=ordered_lots,
+        swimlanes={
+            uc.id: Markup(swimlane_svg(uc, acteurs))
+            for uc in (dossier.exigences.cas_utilisation if dossier.exigences else [])
+        },
+        architecture_view=Markup(architecture_svg(dossier)),
+        flows=[
+            (uc.id, uc.nom, Markup(svg))
+            for uc in (dossier.exigences.cas_utilisation if dossier.exigences else [])
+            if (svg := api_flow_svg(uc, dossier))
+        ],
+        operations=_operations_view(dossier),
+        schema_bdd=Markup(erd_svg(dossier)),
+        tables={e.id: table_name(e) for e in (dossier.architecture.entites if dossier.architecture else [])},
+        keys={
+            f"{e.id}.{a.nom}": _key_label(a, {x.id: x for x in dossier.architecture.entites})
+            for e in (dossier.architecture.entites if dossier.architecture else [])
+            for a in e.attributs
+        },
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,27 @@
+# Plan projet — lots, dépendances, charges, jalons.
+# Les charges sont des estimations : toujours une fourchette et une confiance.
+document:
+  type: plan
+  statut: brouillon
+  version: 0.1.0
+
+lots:
+  # Règle 9 : pas de cycle dans depend_de.
+  - id: LOT-01
+    nom: ""
+    livrable: ""             # ce qui existe à la fin, vérifiable
+    critere_fin: ""          # binaire : fait / pas fait
+    cas_utilisation: [UC-01]
+    depend_de: []
+    charge_estimee:
+      min: ""                # ex : "2 j"
+      max: ""
+      confiance: moyenne     # faible | moyenne | haute
+    responsable: ""
+
+jalons:
+  - id: JAL-01
+    nom: ""                  # ex : "Dossier de conception validé"
+    lots: [LOT-01]
+    date_cible: ""           # optionnel
+    validation_requise_par: ""

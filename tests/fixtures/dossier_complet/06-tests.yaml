@@ -1,0 +1,25 @@
+# Stratégie de tests et critères d'acceptation — écrits AVANT le code.
+document:
+  type: tests
+  statut: brouillon
+  version: 0.1.0
+
+strategie:
+  niveaux: [unitaire, integration, contrat_api, securite, performance, recette]
+  environnement_recette: ""
+  donnees_de_test: ""        # jamais de données personnelles réelles
+
+tests:
+  # Règle 2 : chaque exigence a au moins un test.
+  - id: TST-01
+    niveau: recette
+    exigences: [EX-01]
+    cas_utilisation: [UC-01]
+    etant_donne: ""
+    quand: ""
+    alors: ""                # résultat attendu, mesurable
+    automatise: false
+    statut: a_ecrire         # a_ecrire | ecrit | passe | echoue
+
+criteres_acceptation_globaux:
+  - ""                       # ex : "100 % des exigences must ont un test au statut passe"

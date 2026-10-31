@@ -40,6 +40,18 @@ class Attribut(BaseModel):
     type: str = ""
     obligatoire: bool = True
     donnee_personnelle: bool = False  # Règle 8
+    cle: str = ""  # "" | primaire | etrangere
+    unique: bool = False
+    reference: str = ""  # ENT-xx visée par une clé étrangère
+    sur_suppression: str = ""  # cascade | protect | set_null | restrict
+
+
+class Contrainte(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    type: str = "unique"  # unique | check | index
+    champs: List[str] = Field(default_factory=list)
+    nom: str = ""
+    condition: str = ""
 
 
 class Relation(BaseModel):
@@ -52,8 +64,10 @@ class Entite(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
     nom: str = ""
+    table: str = ""  # nom physique ; à défaut, dérivé du nom
     attributs: List[Attribut] = Field(default_factory=list)
     relations: List[Relation] = Field(default_factory=list)
+    contraintes: List[Contrainte] = Field(default_factory=list)
     source: SourceType = SourceType.HUMAIN
 
 
@@ -98,6 +112,17 @@ class DiagrammeRef(BaseModel):
     cas_utilisation: Optional[str] = None
 
 
+class Migration(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    nom: str = ""
+    lot: str = ""
+    operations: List[str] = Field(default_factory=list)
+    reversible: bool = True
+    reprise_donnees: str = ""
+    statut: str = "prevue"  # prevue | appliquee
+
+
 class ArchitectureDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
     document: DocumentHeader
@@ -108,3 +133,4 @@ class ArchitectureDocument(BaseModel):
     deploiement: Optional[Deploiement] = None
     securite: Optional[Securite] = None
     diagrammes: List[DiagrammeRef] = Field(default_factory=list)
+    migrations: List[Migration] = Field(default_factory=list)

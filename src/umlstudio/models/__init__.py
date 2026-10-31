@@ -27,6 +27,7 @@ from .plan import Lot, PlanDocument, Jalon, ChargeEstimee
 from .risques import DonneePersonnelle, Risque, RisquesDocument
 from .tests import TestItem, TestsDocument, Strategie
 from .validations import ValidationEntry, ValidationsDocument
+from .api import Champ, Operation, Reponse
 from .dossier import ConceptionDossier
 
 __all__ = [

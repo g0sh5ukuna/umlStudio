@@ -1,0 +1,28 @@
+# Risques, sécurité et données personnelles.
+document:
+  type: risques
+  statut: brouillon
+  version: 0.1.0
+
+risques:
+  # Règle 7 : responsable et mitigation obligatoires.
+  - id: RSK-01
+    categorie: technique     # technique | planning | dependance | securite | reglementaire | organisation
+    enonce: ""               # "Si X, alors Y"
+    probabilite: moyenne     # faible | moyenne | haute
+    impact: moyen            # faible | moyen | fort
+    mitigation: ""
+    declencheur: ""          # signal qui indique que le risque se réalise
+    responsable: ""
+    statut: ouvert           # ouvert | maitrise | realise | clos
+
+donnees_personnelles:
+  # Règle 8 : finalité, base légale, durée de conservation. Vérifier le texte applicable à la source (APDP, RGPD).
+  - id: DP-01
+    entite: ENT-01
+    champs: []
+    finalite: ""
+    base_legale: ""          # à confirmer avec le référent conformité, ne pas deviner
+    duree_conservation: ""
+    destinataires: []
+    transfert_hors_pays: false

@@ -28,11 +28,18 @@ composants:
 entites:
   - id: ENT-01
     nom: ""
+    table: ""                # nom physique ; à défaut, dérivé du nom
     attributs:
+      - nom: id
+        type: entier
+        cle: primaire
       - nom: ""
         type: ""
-        obligatoire: true
+        obligatoire: true    # NOT NULL
+        unique: false
         donnee_personnelle: false   # si true : déclarer dans 05-risques.yaml (donnees_personnelles)
+      # Clé étrangère : cle: etrangere, reference: ENT-02, sur_suppression: cascade | protect | set_null | restrict
+    contraintes: []          # ex : {type: unique, champs: [a, b], nom: ""} ou {type: check, condition: "montant > 0"}
     relations:
       - vers: ENT-02
         cardinalite: "1..*"
@@ -68,3 +75,14 @@ diagrammes:                  # fichiers PlantUML dans diagrammes/
   - fichier: diagrammes/sequence-UC-01.puml
     type: sequence
     cas_utilisation: UC-01
+
+migrations:
+  # Ce qui change dans la base, dans l'ordre d'application.
+  - id: MIG-01
+    nom: ""
+    lot: LOT-01
+    operations:
+      - ""                   # ex : "Créer la table demande", "Ajouter la contrainte unique (agent_id, telephone)"
+    reversible: true
+    reprise_donnees: ""      # données existantes à transformer avant ou après ; vide si aucune
+    statut: prevue           # prevue | appliquee

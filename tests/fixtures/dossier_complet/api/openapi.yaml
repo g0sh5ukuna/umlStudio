@@ -1,0 +1,79 @@
+openapi: 3.1.0
+info: {title: Demandes, version: 0.1.0}
+security:
+  - jwt: []
+components:
+  securitySchemes:
+    jwt: {type: http, scheme: bearer, bearerFormat: JWT}
+    session: {type: apiKey, in: cookie, name: sessionid}
+    oauth: {type: oauth2, flows: {authorizationCode: {authorizationUrl: "https://ex/auth", tokenUrl: "https://ex/token", scopes: {"demandes:ecrire": ""}}}}
+  schemas:
+    NouvelleDemande:
+      type: object
+      required: [nom, telephone, consentement]
+      properties:
+        nom: {type: string}
+        telephone: {type: string}
+        consentement: {type: boolean}
+        piece: {type: string, format: binary}
+        niveaux: {type: array, items: {type: string}}
+paths:
+  /api/demandes/:
+    post:
+      operationId: creerDemande
+      summary: Déposer une demande
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/NouvelleDemande"}
+      responses:
+        "201": {description: Demande créée}
+        "400": {description: Champ requis manquant}
+        "429": {description: Trop de dépôts}
+      x-stocke:
+        - {entite: ENT-01, action: insert}
+        - {entite: ENT-03, action: insert, detail: "Une ligne par pièce jointe"}
+      x-lit: [ENT-02]
+      x-transaction: true
+  /api/demandes/{id}/confirmer/:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: integer}}
+    patch:
+      operationId: confirmerDemande
+      summary: Confirmer par code
+      security:
+        - session: []
+        - oauth: ["demandes:ecrire"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: {type: string}
+      responses:
+        "200": {description: Demande confirmée}
+        "403": {description: Code faux}
+  /api/demandes/{id}/:
+    get:
+      operationId: lireDemande
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer}}
+      responses:
+        "200": {description: Détail}
+        "404": {description: Introuvable}
+      x-stocke: []
+  /api/demandes/{id}/supprimer/:
+    delete:
+      operationId: supprimerDemande
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer}}
+      responses:
+        "204": {description: Supprimée}
+      x-stocke: [{entite: ENT-01, action: delete}]
+  /api/sante/:
+    get:
+      responses:
+        "200": {description: OK}

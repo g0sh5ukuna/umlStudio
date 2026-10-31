@@ -45,3 +45,17 @@ def test_cli_doc_command(tmp_path: Path):
     res_alias = runner.invoke(app, ["spec", "modeles/conception", "--format", "md", "--output", str(tmp_path / "alias.md")])
     assert res_alias.exit_code == 0
     assert (tmp_path / "alias.md").exists()
+
+
+def test_la_specification_contient_les_diagrammes(tmp_path: Path):
+    dossier, _ = load_dossier(Path("tests/fixtures/dossier_complet"))
+
+    html = generate_spec_html(dossier, tmp_path / "spec.html")
+    assert html.count('class="diagramme-couloirs"') == 2
+    assert 'class="diagramme-architecture"' in html
+    assert html.count('class="diagramme-flux"') == 2
+    assert "Fiche des opérations" in html
+
+    md = generate_spec_markdown(dossier, tmp_path / "spec.md")
+    assert md.count("```mermaid") == 6
+    assert "Fiche des opérations" in md

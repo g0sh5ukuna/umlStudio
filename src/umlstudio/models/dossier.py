@@ -12,6 +12,7 @@ from .plan import Lot, PlanDocument
 from .risques import DonneePersonnelle, Risque, RisquesDocument
 from .tests import TestItem, TestsDocument
 from .validations import ValidationEntry, ValidationsDocument
+from .api import Operation
 
 
 class ConceptionDossier(BaseModel):
@@ -28,6 +29,7 @@ class ConceptionDossier(BaseModel):
     tests: Optional[TestsDocument] = None
     validations: Optional[ValidationsDocument] = None
     openapi_endpoints: List[str] = Field(default_factory=list)
+    operations: List[Operation] = Field(default_factory=list)
     raw_files: Dict[str, str] = Field(default_factory=dict)  # nom_fichier -> contenu brut
 
     # Index des identifiants existants : ID -> type/fichier

@@ -1,0 +1,54 @@
+# Note de cadrage — répond à : pourquoi, pour qui, jusqu'où.
+document:
+  type: cadrage
+  statut: brouillon          # brouillon | soumis | valide
+  version: 0.1.0
+
+projet:
+  nom: ""
+  code: ""                   # court, sans espace (ex: GEST-DEM)
+  commanditaire:             # obligatoire : qui a le pouvoir de valider le périmètre
+    nom: ""
+    role: ""
+  responsable_projet:
+    nom: ""
+    role: ""
+
+contexte: |
+  Situation actuelle et problème constaté, en 3 à 5 lignes.
+  Pas de solution ici.
+
+objectifs:
+  - id: OBJ-01
+    enonce: ""               # ex : réduire le délai de traitement d'une demande
+    indicateur: ""           # ce qu'on mesure
+    valeur_actuelle: ""      # "inconnue" est une réponse valide
+    cible: ""
+    source: humain           # humain | document | deduit
+
+perimetre:
+  inclus:
+    - ""
+  exclu:                     # règle 10 : jamais vide
+    - ""
+
+contraintes:
+  - type: technique          # technique | reglementaire | budget | delai | organisation
+    enonce: ""
+    source: humain
+
+parties_prenantes:
+  - nom: ""
+    role: ""
+    implication: valide      # valide | consulte | informe
+
+faisabilite:
+  verdict: a_confirmer       # faisable | faisable_sous_conditions | non_faisable | a_confirmer
+  conditions:
+    - ""
+  hypotheses:                # ce qu'on suppose vrai sans l'avoir vérifié
+    - ""
+
+non_trouve:                  # informations nécessaires mais introuvables à ce jour
+  - question: ""
+    a_qui_demander: ""
