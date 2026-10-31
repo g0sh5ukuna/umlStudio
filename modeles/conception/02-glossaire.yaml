@@ -1,0 +1,12 @@
+# Glossaire — un terme, une définition, aucune ambiguïté.
+document:
+  type: glossaire
+  statut: brouillon
+  version: 0.1.0
+
+termes:
+  - terme: ""
+    definition: ""
+    synonymes_interdits: []  # mots à ne pas employer pour ce concept
+    exemple: ""
+    source: humain

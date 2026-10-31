@@ -1,0 +1,19 @@
+@startuml sequence-UC-01
+' Cas d'utilisation : UC-01 — <nom>
+' Exigences : EX-01
+title UC-01 — <nom du cas d'utilisation>
+
+actor "ACT-01\n<acteur>" as acteur
+participant "CMP-01\nFrontend" as front
+participant "CMP-02\nAPI" as api
+database "CMP-03\nBase de données" as db
+
+acteur -> front : action
+front -> api : POST /ressource (operationId)
+api -> api : validation serveur
+api -> db : INSERT
+db --> api : ok
+api --> front : 201 Created
+front --> acteur : confirmation
+
+@enduml

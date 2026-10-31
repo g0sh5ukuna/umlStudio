@@ -1,0 +1,70 @@
+# Document d'architecture — comment on le construit.
+document:
+  type: architecture
+  statut: brouillon
+  version: 0.1.0
+
+decisions:
+  # Une décision = un choix + pourquoi + risque + alternative écartée.
+  - id: DEC-01
+    sujet: ""
+    choix: ""
+    pourquoi: ""
+    risque_principal: ""
+    alternative_ecartee: ""
+    statut: proposee         # proposee | acceptee | remplacee
+
+composants:
+  # Règle 5 : chaque cas d'utilisation couvert par au moins un composant.
+  - id: CMP-01
+    nom: ""
+    couche: application      # presentation | application | donnees | infrastructure
+    responsabilite: ""       # une phrase
+    technologie: ""          # famille, pas de version figée (ex : "Django LTS")
+    cas_utilisation: [UC-01]
+    depend_de: []            # ids de composants
+    source: humain
+
+entites:
+  - id: ENT-01
+    nom: ""
+    attributs:
+      - nom: ""
+        type: ""
+        obligatoire: true
+        donnee_personnelle: false   # si true : déclarer dans 05-risques.yaml (donnees_personnelles)
+    relations:
+      - vers: ENT-02
+        cardinalite: "1..*"
+    source: humain
+
+interfaces_externes:
+  - id: IFX-01
+    systeme: ""
+    sens: entrant            # entrant | sortant | bidirectionnel
+    protocole: ""
+    donnees_echangees: ""
+    proprietaire: ""
+
+deploiement:
+  environnements: [dev, recette, prod]
+  noeuds:
+    - id: NOD-01
+      nom: ""
+      type: conteneur        # serveur | conteneur | service_gere
+      heberge: [CMP-01]
+      reseau: intranet       # intranet | dmz | externe
+
+securite:
+  authentification: ""
+  autorisation: ""           # modèle de rôles
+  chiffrement_transit: ""
+  chiffrement_repos: ""
+  journalisation: ""
+
+diagrammes:                  # fichiers PlantUML dans diagrammes/
+  - fichier: diagrammes/composants.puml
+    type: composants
+  - fichier: diagrammes/sequence-UC-01.puml
+    type: sequence
+    cas_utilisation: UC-01

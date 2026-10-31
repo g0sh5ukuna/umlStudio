@@ -1,0 +1,10 @@
+# Rendus PlantUML (générés localement)
+**/diagrammes/*.png
+**/diagrammes/*.svg
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
+# Secrets
+.env
+.env.*

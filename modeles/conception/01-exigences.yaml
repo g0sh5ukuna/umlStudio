@@ -1,0 +1,45 @@
+# Cahier des charges fonctionnel — acteurs, exigences, cas d'utilisation.
+document:
+  type: exigences
+  statut: brouillon
+  version: 0.1.0
+
+acteurs:
+  - id: ACT-01
+    nom: ""                  # ex : Agent de saisie
+    type: humain             # humain | systeme
+    description: ""
+    source: humain
+
+exigences:
+  # Règle 1 : mesure obligatoire. Règle 2 : au moins un test lié (dans 06-tests.yaml).
+  - id: EX-01
+    type: fonctionnelle      # fonctionnelle | performance | securite | disponibilite | utilisabilite | conformite
+    enonce: ""               # "Le système doit..." — une seule chose par exigence
+    mesure: ""               # ex : "réponse < 500 ms au 95e centile sur 100 requêtes"
+    priorite: must           # must | should | could | wont
+    objectifs: [OBJ-01]
+    source: humain
+    statut: actif            # actif | abandonne
+
+cas_utilisation:
+  # Règle 3 : au moins un acteur et une exigence. Règle 4 : endpoints référencés par operationId.
+  - id: UC-01
+    nom: ""                  # verbe + complément : "Soumettre une demande"
+    acteur_principal: ACT-01
+    acteurs_secondaires: []
+    exigences: [EX-01]
+    preconditions:
+      - ""
+    scenario_nominal:
+      - "1. "
+      - "2. "
+    scenarios_alternatifs:
+      - condition: ""
+        etapes:
+          - ""
+    postconditions:
+      - ""
+    endpoints: []            # ex : [createDemande, getDemande]
+    source: humain
+    statut: actif
