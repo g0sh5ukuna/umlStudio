@@ -69,7 +69,7 @@ Un champ laissé vide ne compte pas : un test sans résultat attendu ne couvre a
 | `umlstudio matrix [dossier]` | Affiche la matrice de traçabilité objectif → test |
 | `umlstudio stats [dossier]` | Affiche les volumes : exigences, cas d'utilisation, risques, tests |
 | `umlstudio report [dossier] -f html\|md` | Rapport d'audit : score, anomalies, matrice |
-| `umlstudio doc [dossier] -f md\|html` | Spécification destinée aux développeurs : contexte, glossaire, scénarios, modèle de données, sécurité, recette, lots ordonnés |
+| `umlstudio doc [dossier] -f md\|html` | Spécification destinée aux développeurs : contexte, glossaire, scénarios en couloirs, vue de bout en bout, flux des appels d'API, schéma de la base, migrations, sécurité, recette, lots ordonnés |
 | `umlstudio sign <fichier> -a <auteur> -e <preuve>` | Enregistre l'empreinte d'un fichier validé dans `validations.yaml` |
 | `umlstudio sign-all [dossier] -a <auteur> -e <preuve>` | Fait de même pour les sept fichiers du dossier |
 
@@ -92,6 +92,60 @@ conception/
 ```
 
 Les conventions (identifiants jamais réutilisés, provenance de chaque élément, statuts `brouillon` → `soumis` → `valide`) sont décrites dans [modeles/conception/README.md](modeles/conception/README.md).
+
+## Décrire les API
+
+Le contrat `api/openapi.yaml` alimente le diagramme « Flux des opérations » de la spécification. Pour chaque cas d'utilisation, les appels listés dans `endpoints` s'enchaînent dans l'ordre. Chaque appel montre :
+
+- la méthode et le chemin ;
+- la sécurité (`securitySchemes` : JWT, OAuth2, cookie de session, clé API, ou « Public » pour `security: []`) ;
+- les champs requis et facultatifs (corps, chemin, paramètres) ;
+- les réponses de succès, qui mènent à l'appel suivant, et d'échec, en rouge ;
+- ce qui est enregistré, déclaré par l'extension `x-stocke`.
+
+```yaml
+paths:
+  /api/demandes/:
+    post:
+      operationId: creerDemande
+      security: []                 # public
+      requestBody: { ... }         # champs et "required"
+      responses:
+        "201": {description: Demande créée}
+        "400": {description: Consentement absent}
+      x-stocke: [ENT-02, ENT-03]   # entités écrites ; [] = rien n'est stocké
+```
+
+Sans `x-stocke`, le diagramme affiche « Stockage non déclaré » : c'est une question laissée ouverte, pas une absence de stockage.
+
+Pour dire précisément ce qui se passe en base, `x-stocke` accepte une action par table, `x-lit` les lectures et `x-transaction` le tout-ou-rien :
+
+```yaml
+      x-lit: [ENT-02]
+      x-stocke:
+        - {entite: ENT-04, action: update, champs: [credits]}
+        - {entite: ENT-05, action: insert}
+        - {entite: ENT-01, action: delete}
+      x-transaction: true
+```
+
+La spécification en déduit, pour chaque appel :
+
+- les ordres SELECT, INSERT, UPDATE et DELETE ;
+- les contraintes que la base vérifie : NOT NULL, UNIQUE, clés étrangères, CHECK ;
+- ce que déclenche une suppression : cascade, refus ou mise à NULL.
+
+## Décrire la base de données
+
+Dans `03-architecture.yaml`, chaque entité porte :
+
+- sa table ;
+- ses clés : `cle: primaire`, ou `cle: etrangere` avec `reference` et `sur_suppression` ;
+- ses colonnes uniques et ses `contraintes` composées.
+
+La section `migrations` liste les changements de schéma dans l'ordre : opérations, réversibilité, reprise de données, statut.
+
+La spécification dessine le schéma entité-relation et le tableau des migrations.
 
 ## Valider un document
 
